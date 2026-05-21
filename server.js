@@ -12,7 +12,7 @@ app.use(express.static(__dirname));
 app.use(express.json());
 
 // आपका असली मोंगोडीबी डायरेक्ट कनेक्शन लिंक यहाँ सेट है
-const mongoURI = "mongodb+srv://gaurav:gaurav123@@cluster0.3ysbxvk.mongodb.net/gt_game_db?retryWrites=true&w=majority&appName=Cluster0";
+const mongoURI = "mongodb+srv://Gaurav123kumar:Gaurav12345@cluster0.3ysbxvk.mongodb.net/gt_game_db?retryWrites=true&w=majority&appName=Cluster0";
 let db, usersCollection;
 
 // डेटाबेस से कनेक्ट करने का पक्का लॉजिक
