@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const { MongoClient } = require('mongodb'); // मोंगोडीबी डेटाबेस टूल लोड किया
+const { MongoClient } = require('mongodb'); 
 
 const app = express();
 const server = http.createServer(app);
@@ -11,11 +11,10 @@ const io = new Server(server);
 app.use(express.static(__dirname));
 app.use(express.json());
 
-// आपका असली मोंगोडीबी डायरेक्ट कनेक्शन लिंक यहाँ सेट है
+// आपका असली मोंगोडीबी डायरेक्ट कनेक्शन लिंक
 const mongoURI = "mongodb+srv://Gaurav123kumar:Gaurav12345@cluster0.3ysbxvk.mongodb.net/gt_game_db?retryWrites=true&w=majority&appName=Cluster0";
 let db, usersCollection;
 
-// डेटाबेस से कनेक्ट करने का पक्का लॉजिक
 MongoClient.connect(mongoURI)
     .then(client => {
         db = client.db('gt_game_db');
@@ -28,7 +27,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'app.html'));
 });
 
-// 1. नया यूजर रजिस्ट्रेशन (अब सीधा डेटाबेस में सुरक्षित सेव होगा)
+// 1. नया यूजर रजिस्ट्रेशन
 app.post('/api/register', async (req, res) => {
     const { name, mobile, password } = req.body;
     if (!name || !mobile || !password || mobile.length !== 10) {
@@ -45,7 +44,7 @@ app.post('/api/register', async (req, res) => {
             name: name,
             mobile: mobile,
             password: password,
-            balance: 500, // ₹500 वेलकम बोनस
+            balance: 500, 
             totalDeposited: 0,
             bankDetails: null
         };
@@ -57,7 +56,7 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// 2. लॉगिन API (डेटाबेस से मैच करेगा)
+// 2. लॉगिन API (क्रैश-प्रूफ फिक्स के साथ)
 app.post('/api/login', async (req, res) => {
     const { mobile, password } = req.body;
     if (!mobile || !password) {
@@ -67,7 +66,15 @@ app.post('/api/login', async (req, res) => {
     try {
         const user = await usersCollection.findOne({ mobile: mobile, password: password });
         if (user) {
-            return res.json({ success: true, msg: "लॉगिन सफल!", user: user });
+            // मोंगोडीबी की स्पेशल आईडी को सादे टेक्स्ट में बदलकर भेजना ताकि सर्वर क्रैश न हो
+            const safeUser = {
+                name: user.name,
+                mobile: user.mobile,
+                balance: user.balance,
+                totalDeposited: user.totalDeposited,
+                bankDetails: user.bankDetails
+            };
+            return res.json({ success: true, msg: "लॉगिन सफल!", user: safeUser });
         }
         return res.json({ success: false, msg: "गलत मोबाइल नंबर या पासवर्ड!" });
     } catch (e) {
@@ -84,7 +91,14 @@ app.post('/api/save-bank', async (req, res) => {
             { $set: { bankDetails: { bankName, accNo, ifsc, holderName } } }
         );
         const updatedUser = await usersCollection.findOne({ mobile: mobile });
-        return res.json({ success: true, msg: "बैंक डिटेल्स सफलतापूर्वक सुरक्षित हो गईं!", user: updatedUser });
+        const safeUser = {
+            name: updatedUser.name,
+            mobile: updatedUser.mobile,
+            balance: updatedUser.balance,
+            totalDeposited: updatedUser.totalDeposited,
+            bankDetails: updatedUser.bankDetails
+        };
+        return res.json({ success: true, msg: "बैंक डिटेल्स सफलतापूर्वक सुरक्षित हो गईं!", user: safeUser });
     } catch (e) {
         return res.json({ success: false, msg: "सेव करने में विफल!" });
     }
