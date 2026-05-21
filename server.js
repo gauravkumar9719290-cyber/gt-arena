@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const { MongoClient } = require('mongodb'); // मोंगोडीबी डेटाबेस टूल लोड किया
 
 const app = express();
 const server = http.createServer(app);
@@ -10,55 +11,83 @@ const io = new Server(server);
 app.use(express.static(__dirname));
 app.use(express.json());
 
+// आपका असली मोंगोडीबी डायरेक्ट कनेक्शन लिंक यहाँ सेट है
+const mongoURI = "mongodb+srv://Gaurav123kumar:Gaurav123@cluster0.3ysbxvk.mongodb.net/gt_game_db?retryWrites=true&w=majority&appName=Cluster0";
+let db, usersCollection;
+
+// डेटाबेस से कनेक्ट करने का पक्का लॉजिक
+MongoClient.connect(mongoURI)
+    .then(client => {
+        db = client.db('gt_game_db');
+        usersCollection = db.collection('users');
+        console.log("MongoDB Database Connected Successfully! 🎉");
+    })
+    .catch(err => console.error("Database Connection Failed: ❌", err));
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'app.html'));
 });
 
-// यूज़र्स का डमी डेटाबेस (नंबर, नाम, पासवर्ड और बैंक डिटेल्स यहाँ सेव रहेंगी)
-let usersDB = {}; 
-
-// 1. नया यूजर रजिस्ट्रेशन API
-app.post('/api/register', (req, res) => {
+// 1. नया यूजर रजिस्ट्रेशन (अब सीधा डेटाबेस में सुरक्षित सेव होगा)
+app.post('/api/register', async (req, res) => {
     const { name, mobile, password } = req.body;
     if (!name || !mobile || !password || mobile.length !== 10) {
         return res.json({ success: false, msg: "कृपया सभी जानकारी और सही 10-अंकों का मोबाइल नंबर डालें!" });
     }
-    if (usersDB[mobile]) {
-        return res.json({ success: false, msg: "यह मोबाइल नंबर पहले से रजिस्टर्ड है! कृपया लॉगिन करें।" });
-    }
     
-    // नया यूजर बनाएं (₹500 वेलकम बोनस के साथ)
-    usersDB[mobile] = {
-        name: name,
-        mobile: mobile,
-        password: password,
-        balance: 500,
-        totalDeposited: 0,
-        bankDetails: null // शुरुआत में खाली रहेगा
-    };
-    return res.json({ success: true, msg: "रजिस्ट्रेशन सफल! अब लॉगिन करें।" });
+    try {
+        const existUser = await usersCollection.findOne({ mobile: mobile });
+        if (existUser) {
+            return res.json({ success: false, msg: "यह मोबाइल नंबर पहले से रजिस्टर्ड है! कृपया लॉगिन करें।" });
+        }
+        
+        const newUser = {
+            name: name,
+            mobile: mobile,
+            password: password,
+            balance: 500, // ₹500 वेलकम बोनस
+            totalDeposited: 0,
+            bankDetails: null
+        };
+        
+        await usersCollection.insertOne(newUser);
+        return res.json({ success: true, msg: "रजिस्ट्रेशन सफल! अब लॉगिन करें।" });
+    } catch (e) {
+        res.json({ success: false, msg: "डेटाबेस एरर, कृपया दोबारा प्रयास करें।" });
+    }
 });
 
-// 2. लॉगिन API
-app.post('/api/login', (req, res) => {
+// 2. लॉगिन API (डेटाबेस से मैच करेगा)
+app.post('/api/login', async (req, res) => {
     const { mobile, password } = req.body;
     if (!mobile || !password) {
         return res.json({ success: false, msg: "कृपया मोबाइल नंबर और पासवर्ड दोनों डालें!" });
     }
-    const user = usersDB[mobile];
-    if (user && user.password === password) {
-        return res.json({ success: true, msg: "लॉगिन सफल!", user: user });
+    
+    try {
+        const user = await usersCollection.findOne({ mobile: mobile, password: password });
+        if (user) {
+            return res.json({ success: true, msg: "लॉगिन सफल!", user: user });
+        }
+        return res.json({ success: false, msg: "गलत मोबाइल नंबर या पासवर्ड!" });
+    } catch (e) {
+        res.json({ success: false, msg: "लॉगिन फेल!" });
     }
-    return res.json({ success: false, msg: "गलत मोबाइल नंबर या पासवर्ड!" });
 });
 
 // 3. बैंक डिटेल्स सेव करने का API
-app.post('/api/save-bank', (req, res) => {
+app.post('/api/save-bank', async (req, res) => {
     const { mobile, bankName, accNo, ifsc, holderName } = req.body;
-    if (!usersDB[mobile]) return res.json({ success: false, msg: "यूजर नहीं मिला!" });
-    
-    usersDB[mobile].bankDetails = { bankName, accNo, ifsc, holderName };
-    return res.json({ success: true, msg: "बैंक डिटेल्स सफलतापूर्वक सुरक्षित हो गईं!", user: usersDB[mobile] });
+    try {
+        await usersCollection.updateOne(
+            { mobile: mobile },
+            { $set: { bankDetails: { bankName, accNo, ifsc, holderName } } }
+        );
+        const updatedUser = await usersCollection.findOne({ mobile: mobile });
+        return res.json({ success: true, msg: "बैंक डिटेल्स सफलतापूर्वक सुरक्षित हो गईं!", user: updatedUser });
+    } catch (e) {
+        return res.json({ success: false, msg: "सेव करने में विफल!" });
+    }
 });
 
 // लाइव प्रेडिक्शन गेम लॉजिक
