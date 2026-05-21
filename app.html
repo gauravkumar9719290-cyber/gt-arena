@@ -7,10 +7,19 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #0b0c10; color: #fff; padding: 15px; }
+        
+        /* लॉगिन स्क्रीन डिज़ाइन */
+        .auth-container { max-width: 400px; margin: 100px auto; background: #151922; padding: 30px; border-radius: 15px; border: 2px solid #00ffcc; box-shadow: 0 0 20px #00ffcc; text-align: center; }
+        .auth-container h2 { color: #00ffcc; margin-bottom: 20px; text-shadow: 0 0 10px #00ffcc; }
+        .auth-container input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #0b0c10; color: #fff; font-size: 1rem; text-align: center; }
+        .auth-btn { width: 100%; padding: 12px; background: #00ffcc; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; color: #000; }
+        
+        /* गेम स्क्रीन डिज़ाइन */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 5px; border-bottom: 2px solid #1f2833; }
         .logo { color: #00ffcc; text-shadow: 0 0 10px #00ffcc; font-size: 1.8rem; }
-        .wallet-box { background: #1f2833; padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 10px; border: 1px solid #45f3ff; }
-        .add-btn { background: #00ffcc; border: none; color: #000; padding: 3px 10px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .wallet-box { background: #1f2833; padding: 8px 12px; border-radius: 20px; display: flex; align-items: center; gap: 8px; border: 1px solid #45f3ff; }
+        .add-btn { background: #00ffcc; border: none; color: #000; padding: 4px 10px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+        .wd-btn { background: #ff0055; border: 1px solid #ff0055; color: #fff; padding: 4px 10px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
         .tabs { display: flex; gap: 10px; margin: 20px 0; }
         .tab-btn { flex: 1; padding: 12px; background: #1f2833; border: 1px solid #333; color: #fff; font-size: 1rem; border-radius: 8px; cursor: pointer; transition: 0.3s; }
         .tab-btn.active { background: #00ffcc; color: #000; font-weight: bold; box-shadow: 0 0 15px #00ffcc; border-color: #00ffcc; }
@@ -38,69 +47,126 @@
 </head>
 <body>
 
-    <header class="header">
-        <h1 class="logo">GT GAME</h1>
-        <div class="wallet-box">
-            <span>🪙 Wallet: <b id="wallet-balance">₹500</b></span>
-            <button class="add-btn" onclick="openDepositModal()">+ Add</button>
+    <!-- लॉगिन / रजिस्ट्रेशन स्क्रीन -->
+    <div id="auth-screen" class="auth-container">
+        <h2>GT LOGIN</h2>
+        <div id="mobile-box">
+            <input type="number" id="user-mobile" placeholder="Enter 10-Digit Mobile No">
+            <button class="auth-btn" onclick="sendOTP()">Send OTP</button>
         </div>
-    </header>
-
-    <div class="tabs">
-        <button class="tab-btn active" id="btn-color" onclick="switchGame('color-game')">Color Match</button>
-        <button class="tab-btn" id="btn-number" onclick="switchGame('number-game')">Number Lock</button>
+        <div id="otp-box" class="hidden">
+            <input type="number" id="user-otp" placeholder="Enter 4-Digit OTP">
+            <button class="auth-btn" onclick="verifyOTP()">Verify & Login</button>
+        </div>
     </div>
 
-    <main id="color-game" class="game-section">
-        <div class="info-bar">
-            <p>Period ID: <span id="color-round">Loading...</span></p>
-            <div class="timer" id="color-timer">00:60</div>
-        </div>
-        <div class="color-grid">
-            <button class="bet-btn neon-black" onclick="placeBet('color', 'Black')">Black (2.9x)</button>
-            <button class="bet-btn neon-white" onclick="placeBet('color', 'White')">White (2.9x)</button>
-            <button class="bet-btn neon-purple" onclick="placeBet('color', 'Purple')">Purple (2.9x)</button>
-        </div>
-        <p class="history-title">Last Results: <span id="color-history">-</span></p>
-    </main>
+    <!-- मुख्य गेम स्क्रीन (शुरुआत में छुपी रहेगी) -->
+    <div id="game-screen" class="hidden">
+        <header class="header">
+            <h1 class="logo">GT GAME</h1>
+            <div class="wallet-box">
+                <span>🪙 <b id="wallet-balance">₹0</b></span>
+                <button class="add-btn" onclick="openDepositModal()">+ Add</button>
+                <button class="wd-btn" onclick="openWithdrawModal()">Withdraw</button>
+            </div>
+        </header>
 
-    <main id="number-game" class="game-section hidden">
-        <div class="info-bar">
-            <p>Period ID: <span id="number-round">Loading...</span></p>
-            <div class="timer" id="number-timer">60:00</div>
+        <p style="color: #00ffcc; font-size: 0.9rem; margin-top: 5px;">👤 User: <span id="logged-phone">-</span></p>
+
+        <div class="tabs">
+            <button class="tab-btn active" id="btn-color" onclick="switchGame('color-game')">Color Match</button>
+            <button class="tab-btn" id="btn-number" onclick="switchGame('number-game')">Number Lock</button>
         </div>
-        <p style="color: #bbb; margin-bottom: 10px;">Select any number from 00 to 99 (90x Reward):</p>
-        <div class="number-grid" id="number-buttons-container"></div>
-        <p class="history-title">Last Number: <span id="number-history">-</span></p>
-    </main>
+
+        <main id="color-game" class="game-section">
+            <div class="info-bar">
+                <p>Period ID: <span id="color-round">Loading...</span></p>
+                <div class="timer" id="color-timer">00:60</div>
+            </div>
+            <div class="color-grid">
+                <button class="bet-btn neon-black" onclick="placeBet('color', 'Black')">Black (2.9x)</button>
+                <button class="bet-btn neon-white" onclick="placeBet('color', 'White')">White (2.9x)</button>
+                <button class="bet-btn neon-purple" onclick="placeBet('color', 'Purple')">Purple (2.9x)</button>
+            </div>
+            <p class="history-title">Last Results: <span id="color-history">-</span></p>
+        </main>
+
+        <main id="number-game" class="game-section hidden">
+            <div class="info-bar">
+                <p>Period ID: <span id="number-round">Loading...</span></p>
+                <div class="timer" id="number-timer">60:00</div>
+            </div>
+            <p style="color: #bbb; margin-bottom: 10px;">Select any number from 00 to 99 (90x Reward):</p>
+            <div class="number-grid" id="number-buttons-container"></div>
+            <p class="history-title">Last Number: <span id="number-history">-</span></p>
+        </main>
+    </div>
 
     <div id="deposit-modal" class="modal hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="closeDepositModal()">&times;</span>
             <h2>Add Real Money</h2>
             <p>Scan QR & Pay, then enter UTR number</p>
-            
             <div class="qr-placeholder">
                 <img src="https://postimg.cc" alt="UPI QR" style="width:160px; height:160px; margin-bottom:10px; border: 1px solid #ccc; border-radius: 8px;">
                 <p style="color:#000; font-weight:bold; font-size:0.9rem; word-break: break-all;">UPI ID: bambambholebaba570-1@okhdfcbank</p>
             </div>
-            
             <input type="number" id="deposit-amount" placeholder="Enter Amount (₹)">
             <input type="text" id="utr-input" placeholder="Enter 12-Digit UTR Number">
             <button class="submit-btn" onclick="submitDeposit()">Submit Request</button>
         </div>
     </div>
 
-    <!-- लाइव सॉकेट लाइब्रेरी कनेक्शन -->
     <script src="https://cloudflare.com"></script>
     <script>
-        const socket = io();
+        const socket = io('https://onrender.com');
+        let currentUser = null;
+
+        // OTP भेजने का फंक्शन
+        function sendOTP() {
+            const mobile = document.getElementById('user-mobile').value;
+            fetch('/api/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mobile: mobile })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.msg);
+                if(data.success) {
+                    document.getElementById('mobile-box').classList.add('hidden');
+                    document.getElementById('otp-box').classList.remove('hidden');
+                }
+            });
+        }
+
+        // OTP वेरीफाई करने का फंक्शन
+        function verifyOTP() {
+            const mobile = document.getElementById('user-mobile').value;
+            const otp = document.getElementById('user-otp').value;
+            fetch('/api/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mobile: mobile, otp: otp })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    currentUser = data.user;
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('game-screen').classList.remove('connected', 'hidden');
+                    document.getElementById('wallet-balance').innerText = "₹" + currentUser.balance;
+                    document.getElementById('logged-phone').innerText = currentUser.mobile;
+                } else {
+                    alert(data.msg);
+                }
+            });
+        }
 
         function switchGame(gameId) {
             document.querySelectorAll('.game-section').forEach(sec => sec.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(gameId).classList.remove('hidden');
-            
             if (gameId === 'color-game') {
                 document.getElementById('btn-color').classList.add('active');
             } else {
@@ -148,20 +214,22 @@
         });
 
         function placeBet(gameType, selection) {
+            if(!currentUser) return alert("कृपया पहले लॉगिन करें!");
             const amount = prompt("दर्ज करें कि आप " + selection + " पर कितने रुपये लगाना चाहते हैं:", "10");
             if (!amount || isNaN(amount) || amount <= 0) return alert("कृपया सही राशि डालें!");
+            if (amount > currentUser.balance) return alert("अपर्याप्त बैलेंस! कृपया पहले पैसे ऐड करें।");
 
             fetch('/api/place-bet', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ gameType: gameType, selection: selection, amount: amount })
             })
-            .then(function(res) { return res.json(); })
-            .then(function(data) {
+            .then(res => res.json())
+            .then(data => {
                 if(data.success) {
+                    currentUser.balance -= Number(amount);
+                    document.getElementById('wallet-balance').innerText = "₹" + currentUser.balance;
                     alert("सफलतापूर्वक ₹" + amount + " की बेट " + selection + " पर लग गई!");
-                } else {
-                    alert("बेट लग गई है");
                 }
             });
         }
@@ -182,11 +250,28 @@
         function submitDeposit() {
             const amount = document.getElementById('deposit-amount').value;
             const utr = document.getElementById('utr-input').value;
-            if(!amount || utr.length !== 12) return alert("कृपया सही राशि और 12-अंकों का UTR नंबर डालें!");
+            if(!amount || isNaN(amount) || amount <= 0 || utr.length !== 12) return alert("कृपया सही राशि और 12-अंकों का UTR नंबर डालें!");
+            
+            currentUser.totalDeposited += Number(amount); 
             alert("आपकी ₹" + amount + " की रिक्वेस्ट (UTR: " + utr + ") एडमिन के पास भेज दी गई है। जांच के बाद बैलेंस ऐड हो जाएगा।");
             closeDepositModal();
+        }
+
+        function openWithdrawModal() {
+            if (!currentUser) return;
+            if (currentUser.totalDeposited < 100) {
+                return alert("⚠️ विड्रॉ करने से पहले आपको कम से कम ₹100 गेम वॉलेट में एड (+ Add) करना अनिवार्य है!");
+            }
+            
+            const wAmt = prompt("दर्ज करें कि आप कितने रुपये निकालना चाहते हैं:");
+            if(!wAmt || isNaN(wAmt) || wAmt < 100) return alert("न्यूनतम विड्रॉ राशि ₹100 है!");
+            if(wAmt > currentUser.balance) return alert("आपके वॉलेट में इतना बैलेंस नहीं है!");
+            
+            const upi = prompt("अपनी असली UPI ID दर्ज करें (जिस पर पैसे चाहिए):");
+            if(!upi || !upi.includes('@')) return alert("कृपया सही UPI ID डालें!");
+            
+            alert("आपकी ₹" + wAmt + " की विड्रॉ रिक्वेस्ट (UPI: " + upi + ") एडमिन के पास भेज दी गई है।");
         }
     </script>
 </body>
 </html>
-
