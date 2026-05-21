@@ -174,14 +174,16 @@
             .then(res => res.json())
             .then(data => {
                 alert(data.msg);
-                if(data.success) toggleAuth(false); // सफल होने पर लॉगिन पर भेजें
+                if(data.success) toggleAuth(false);
             });
         }
 
-        // लॉगिन सबमिट करना
+        // लॉगिन सबमिट करना (फंक्शन पूरी तरह ठीक किया गया)
         function submitLogin() {
             const mobile = document.getElementById('login-mobile').value;
             const password = document.getElementById('login-pass').value;
+
+            if(!mobile || !password) return alert("कृपया मोबाइल नंबर और पासवर्ड डालें!");
 
             fetch('/api/login', {
                 method: 'POST',
@@ -190,6 +192,7 @@
             })
             .then(res => res.json())
             .then(data => {
+                alert(data.msg);
                 if(data.success) {
                     currentUser = data.user;
                     document.getElementById('auth-screen').classList.add('hidden');
@@ -197,27 +200,21 @@
                     document.getElementById('wallet-balance').innerText = "₹" + currentUser.balance;
                     document.getElementById('logged-name').innerText = currentUser.name;
                     document.getElementById('logged-phone').innerText = currentUser.mobile;
-                } else {
-                    alert(data.msg);
                 }
-            });
+            })
+            .catch(err => alert("लॉगिन कनेक्ट करने में विफल!"));
         }
 
         // विड्रॉ दबाने पर फ्लो चेक करना (100 डिपॉजिट + बैंक डिटेल्स)
         function checkWithdrawFlow() {
             if (!currentUser) return;
-            
-            // शर्त 1: ₹100 कंपल्सरी ऐड होना चाहिए
             if (currentUser.totalDeposited < 100) {
                 return alert("⚠️ विड्रॉ करने से पहले आपको कम से कम ₹100 गेम वॉलेट में एड (+ Add) करना अनिवार्य है!");
             }
-            
-            // शर्त 2: अगर बैंक अकाउंट डिटेल्स नहीं हैं, तो पॉप-अप खोलो
             if (!currentUser.bankDetails) {
                 alert("ℹ️ विड्रॉ करने के लिए पहले अपनी बैंक अकाउंट इंफॉर्मेशन दर्ज करें।");
                 document.getElementById('bank-modal').classList.remove('hidden');
             } else {
-                // अगर दोनों शर्तें पूरी हैं, तो सीधे विड्रॉ अमाउंट मांगो
                 triggerWithdrawRequest();
             }
         }
@@ -242,12 +239,11 @@
                 if(data.success) {
                     currentUser = data.user;
                     closeBankModal();
-                    triggerWithdrawRequest(); // डिटेल्स सेव होते ही सीधे विड्रॉ प्रोसेस शुरू करो
+                    triggerWithdrawRequest();
                 }
             });
         }
 
-        // फाइनल विड्रॉ रिक्वेस्ट प्रोसेस
         function triggerWithdrawRequest() {
             const wAmt = prompt("दर्ज करें कि आप कितने रुपये निकालना चाहते हैं:");
             if(!wAmt || isNaN(wAmt) || wAmt < 100) return alert("न्यूनतम विड्रॉ राशि ₹100 है!");
@@ -264,8 +260,15 @@
             document.querySelectorAll('.game-section').forEach(sec => sec.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(gameId).classList.remove('hidden');
-            if (gameId === 'color-game') document.getElementById('btn-color').classList.add('active');
-            else document.getElementById('btn-number').classList.add('active');
+            
+            // बटन एक्टिव स्टाइल फिक्स
+            if (gameId === 'color-game') {
+                document.getElementById('btn-color').classList.add('active');
+                document.getElementById('btn-number').classList.remove('active');
+            } else {
+                document.getElementById('btn-number').classList.add('active');
+                document.getElementById('btn-color').classList.remove('active');
+            }
         }
 
         const numContainer = document.getElementById('number-buttons-container');
