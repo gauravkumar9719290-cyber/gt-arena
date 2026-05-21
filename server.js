@@ -14,40 +14,54 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'app.html'));
 });
 
-// डमी डेटाबेस (असली डेटाबेस जुड़ने तक मोबाइल नंबर और बैलेंस यहाँ सेव रहेंगे)
+// यूज़र्स का डमी डेटाबेस (नंबर, नाम, पासवर्ड और बैंक डिटेल्स यहाँ सेव रहेंगी)
 let usersDB = {}; 
-let otpStore = {}; // OTP वेरीफाई करने के लिए
 
-// 1. OTP भेजने का API (अभी टेस्टिंग के लिए OTP हमेशा '1234' रहेगा)
-app.post('/api/send-otp', (req, res) => {
-    const { mobile } = req.body;
-    if (!mobile || mobile.length !== 10) {
-        return res.json({ success: false, msg: "कृपया सही 10-अंकों का मोबाइल नंबर डालें!" });
+// 1. नया यूजर रजिस्ट्रेशन API
+app.post('/api/register', (req, res) => {
+    const { name, mobile, password } = req.body;
+    if (!name || !mobile || !password || mobile.length !== 10) {
+        return res.json({ success: false, msg: "कृपया सभी जानकारी और सही 10-अंकों का मोबाइल नंबर डालें!" });
     }
-    otpStore[mobile] = "1234"; // डमी OTP सेट किया
-    return res.json({ success: true, msg: "OTP आपके नंबर पर भेज दिया गया है! (टेस्टिंग OTP: 1234)" });
+    if (usersDB[mobile]) {
+        return res.json({ success: false, msg: "यह मोबाइल नंबर पहले से रजिस्टर्ड है! कृपया लॉगिन करें।" });
+    }
+    
+    // नया यूजर बनाएं (₹500 वेलकम बोनस के साथ)
+    usersDB[mobile] = {
+        name: name,
+        mobile: mobile,
+        password: password,
+        balance: 500,
+        totalDeposited: 0,
+        bankDetails: null // शुरुआत में खाली रहेगा
+    };
+    return res.json({ success: true, msg: "रजिस्ट्रेशन सफल! अब लॉगिन करें।" });
 });
 
-// 2. OTP वेरीफाई करके अकाउंट बनाने या लॉगिन करने का API
-app.post('/api/verify-otp', (req, res) => {
-    const { mobile, otp } = req.body;
-    if (otpStore[mobile] && otpStore[mobile] === otp) {
-        delete otpStore[mobile]; // इस्तेमाल के बाद OTP साफ़ करें
-        
-        // अगर यूजर नया है, तो उसे ₹500 वेलकम बोनस के साथ रजिस्टर करें
-        if (!usersDB[mobile]) {
-            usersDB[mobile] = {
-                mobile: mobile,
-                balance: 500,
-                totalDeposited: 0
-            };
-        }
-        return res.json({ success: true, msg: "लॉगिन सफल!", user: usersDB[mobile] });
+// 2. लॉगिन API
+app.post('/api/login', (req, res) => {
+    const { mobile, password } = req.body;
+    if (!mobile || !password) {
+        return res.json({ success: false, msg: "कृपया मोबाइल नंबर और पासवर्ड दोनों डालें!" });
     }
-    return res.json({ success: false, msg: "गलत OTP! कृपया दोबारा जांचें।" });
+    const user = usersDB[mobile];
+    if (user && user.password === password) {
+        return res.json({ success: true, msg: "लॉगिन सफल!", user: user });
+    }
+    return res.json({ success: false, msg: "गलत मोबाइल नंबर या पासवर्ड!" });
 });
 
-// लाइव सट्टा वेरिएबल्स
+// 3. बैंक डिटेल्स सेव करने का API
+app.post('/api/save-bank', (req, res) => {
+    const { mobile, bankName, accNo, ifsc, holderName } = req.body;
+    if (!usersDB[mobile]) return res.json({ success: false, msg: "यूजर नहीं मिला!" });
+    
+    usersDB[mobile].bankDetails = { bankName, accNo, ifsc, holderName };
+    return res.json({ success: true, msg: "बैंक डिटेल्स सफलतापूर्वक सुरक्षित हो गईं!", user: usersDB[mobile] });
+});
+
+// लाइव प्रेडिक्शन गेम लॉजिक
 let colorBets = { Black: 0, White: 0, Purple: 0 };
 let numberBets = {}; 
 for(let i=0; i<100; i++) { numberBets[String(i).padStart(2, '0')] = 0; }
