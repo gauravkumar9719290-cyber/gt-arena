@@ -14,6 +14,40 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'app.html'));
 });
 
+// डमी डेटाबेस (असली डेटाबेस जुड़ने तक मोबाइल नंबर और बैलेंस यहाँ सेव रहेंगे)
+let usersDB = {}; 
+let otpStore = {}; // OTP वेरीफाई करने के लिए
+
+// 1. OTP भेजने का API (अभी टेस्टिंग के लिए OTP हमेशा '1234' रहेगा)
+app.post('/api/send-otp', (req, res) => {
+    const { mobile } = req.body;
+    if (!mobile || mobile.length !== 10) {
+        return res.json({ success: false, msg: "कृपया सही 10-अंकों का मोबाइल नंबर डालें!" });
+    }
+    otpStore[mobile] = "1234"; // डमी OTP सेट किया
+    return res.json({ success: true, msg: "OTP आपके नंबर पर भेज दिया गया है! (टेस्टिंग OTP: 1234)" });
+});
+
+// 2. OTP वेरीफाई करके अकाउंट बनाने या लॉगिन करने का API
+app.post('/api/verify-otp', (req, res) => {
+    const { mobile, otp } = req.body;
+    if (otpStore[mobile] && otpStore[mobile] === otp) {
+        delete otpStore[mobile]; // इस्तेमाल के बाद OTP साफ़ करें
+        
+        // अगर यूजर नया है, तो उसे ₹500 वेलकम बोनस के साथ रजिस्टर करें
+        if (!usersDB[mobile]) {
+            usersDB[mobile] = {
+                mobile: mobile,
+                balance: 500,
+                totalDeposited: 0
+            };
+        }
+        return res.json({ success: true, msg: "लॉगिन सफल!", user: usersDB[mobile] });
+    }
+    return res.json({ success: false, msg: "गलत OTP! कृपया दोबारा जांचें।" });
+});
+
+// लाइव सट्टा वेरिएबल्स
 let colorBets = { Black: 0, White: 0, Purple: 0 };
 let numberBets = {}; 
 for(let i=0; i<100; i++) { numberBets[String(i).padStart(2, '0')] = 0; }
